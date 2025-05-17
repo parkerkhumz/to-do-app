@@ -1,34 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import supabase from '../../../config/supabaseClient';
 import './dashboard.css';
 
 const Dashboard = () => {
-  // State for managing task list and input fields
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState('');
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(null);
   const [tags, setTags] = useState('');
   const [editingId, setEditingId] = useState(null);
 
-  // State for filtering and searching
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('All');
-
-  // Dark mode toggle
   const [darkMode, setDarkMode] = useState(false);
 
-  // User session and display name
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   const navigate = useNavigate();
 
-  // Check for authenticated user on initial load
   const fetchUser = async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
-      // Redirect to login if not logged in
       navigate('/');
     } else {
       setUser(data.user);
@@ -36,7 +32,6 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch tasks from Supabase for the logged-in user
   const fetchTasks = async () => {
     if (!user) return;
     const { data, error } = await supabase
@@ -45,121 +40,122 @@ const Dashboard = () => {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching tasks:', error);
-    } else {
-      setTasks(data);
-    }
+    if (!error) setTasks(data);
   };
 
-  // Handle form submission for adding or updating a task
+  const handleProfileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file || !user) return;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      console.error('Upload failed:', uploadError.message);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    setAvatarUrl(publicUrl);
+  };
+
   const addOrUpdateTask = async () => {
     if (!title || !dueDate) {
       alert('Please fill in both title and due date.');
       return;
     }
 
-    const tagArray = tags
-      .split(',')
-      .map(tag => tag.trim())
-      .filter(Boolean);
+    const tagArray = tags.split(',').map(tag => tag.trim()).filter(Boolean);
+    const formattedDate = dueDate.toISOString().split('T')[0];
 
     if (editingId) {
-      // Update an existing task
-      const { error } = await supabase
+      await supabase
         .from('tasks')
-        .update({ title, due_date: dueDate, tags: tagArray })
+        .update({ title, due_date: formattedDate, tags: tagArray })
         .eq('id', editingId)
         .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error updating task:', error);
-      } else {
-        resetForm();
-        fetchTasks();
-      }
     } else {
-      // Insert a new task
-      const { error } = await supabase.from('tasks').insert([
-        { title, due_date: dueDate, completed: false, tags: tagArray, user_id: user.id },
-      ]);
-
-      if (error) {
-        console.error('Error adding task:', error);
-      } else {
-        resetForm();
-        fetchTasks();
-      }
+      await supabase.from('tasks').insert([{
+        title,
+        due_date: formattedDate,
+        completed: false,
+        tags: tagArray,
+        user_id: user.id
+      }]);
     }
+
+    resetForm();
+    fetchTasks();
   };
 
-  // Reset the form fields and editing state
   const resetForm = () => {
     setTitle('');
-    setDueDate('');
+    setDueDate(null);
     setTags('');
     setEditingId(null);
   };
 
-  // Populate form fields for editing a task
   const editTask = (task) => {
     setTitle(task.title);
-    setDueDate(task.due_date);
+    setDueDate(new Date(task.due_date));
     setTags(task.tags?.join(', ') || '');
     setEditingId(task.id);
   };
 
-  // Toggle task completion status
   const toggleComplete = async (id, currentStatus) => {
-    const { error } = await supabase
+    await supabase
       .from('tasks')
       .update({ completed: !currentStatus })
       .eq('id', id)
       .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error toggling task:', error);
-    } else {
-      fetchTasks();
-    }
+    fetchTasks();
   };
 
-  // Delete a task
   const deleteTask = async (id) => {
-    const { error } = await supabase
+    await supabase
       .from('tasks')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error deleting task:', error);
-    } else {
-      fetchTasks();
-    }
+    fetchTasks();
   };
 
-  // Sign out user and redirect to login
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
   };
 
-  // Fetch user info on initial mount
   useEffect(() => {
     fetchUser();
   }, []);
 
-  // Fetch tasks after user info is loaded
   useEffect(() => {
     fetchTasks();
   }, [user]);
 
-  // Count of completed and pending tasks
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = "//code.tidio.co/htst4pijfyszlp5hndcmjtruii1fqhme.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   const completedCount = tasks.filter((task) => task.completed).length;
   const pendingCount = tasks.length - completedCount;
 
-  // Apply search and filter criteria to tasks
   const filteredTasks = tasks
     .filter((task) => {
       if (filter === 'Completed') return task.completed;
@@ -172,18 +168,15 @@ const Dashboard = () => {
 
   return (
     <div className={`dashboard-container ${darkMode ? 'dark' : ''}`}>
-      {/* Dark mode toggle */}
-      <button className="dark-toggle" onClick={() => setDarkMode((prev) => !prev)}>
+      <button className="dark-toggle" onClick={() => setDarkMode(!darkMode)}>
         {darkMode ? '☀ Light Mode' : '🌙 Dark Mode'}
       </button>
 
-      {/* Header greeting */}
       <div className="dashboard-header fade-in">
         <h2>Welcome back, {userName}!</h2>
         <p>Add new tasks, track progress, and stay productive!</p>
       </div>
 
-      {/* Task form for adding/editing */}
       <div className="form-row fade-in">
         <input
           type="text"
@@ -191,10 +184,12 @@ const Dashboard = () => {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
+        <DatePicker
+          selected={dueDate}
+          onChange={(date) => setDueDate(date)}
+          dateFormat="yyyy-MM-dd"
+          placeholderText="Select due date"
+          className="date-picker"
         />
         <input
           type="text"
@@ -208,12 +203,10 @@ const Dashboard = () => {
         {editingId && <button onClick={resetForm}>Cancel</button>}
       </div>
 
-      {/* Task summary stats */}
       <div className="task-stats">
         <strong>Completed:</strong> {completedCount} | <strong>Pending:</strong> {pendingCount}
       </div>
 
-      {/* Search and filter controls */}
       <div className="search-filter fade-in">
         <input
           type="text"
@@ -228,7 +221,6 @@ const Dashboard = () => {
         </select>
       </div>
 
-      {/* Task list display */}
       <ul className="task-list">
         {filteredTasks.map((task) => (
           <li key={task.id} className={`task-card fade-in ${task.completed ? 'completed' : ''}`}>
@@ -239,7 +231,6 @@ const Dashboard = () => {
                   <div className="task-meta">Tags: {task.tags.join(', ')}</div>
                 )}
               </div>
-              {/* Action buttons */}
               <div className="task-buttons">
                 <button onClick={() => toggleComplete(task.id, task.completed)}>
                   {task.completed ? 'Undo' : 'Complete'}
@@ -252,7 +243,6 @@ const Dashboard = () => {
         ))}
       </ul>
 
-      {/* Logout button */}
       <div className="logout-container">
         <button className="logout-button" onClick={handleLogout}>
           Log Out

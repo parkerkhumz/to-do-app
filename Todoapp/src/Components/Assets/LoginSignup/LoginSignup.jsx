@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,  useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginSignup.css';
 
@@ -10,9 +10,6 @@ import emailIcon from '../../Assets/email.png';
 import passwordIcon from '../../Assets/password.png';
 import task1Icon from '../../Assets/task1.png';
 
-
-
-
 export const LoginSignup = () => {
   // State to toggle between login/signup
   const [action, setAction] = useState('Login');
@@ -22,17 +19,21 @@ export const LoginSignup = () => {
 
 
 
-
-
-
-
+const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
 
 
+useEffect(() => {
+  const script = document.createElement('script');
+  script.src = "//code.tidio.co/htst4pijfyszlp5hndcmjtruii1fqhme.js";
+  script.async = true;
+  document.body.appendChild(script);
 
-
-
+  return () => {
+    document.body.removeChild(script);
+  };
+}, []);
 
   // Handles both sign up and login logic
   const handleSubmit = async () => {
@@ -128,16 +129,24 @@ export const LoginSignup = () => {
           />
         </div>
 
-        {/* Password input */}
-        <div className="input">
-          <img src={passwordIcon} alt="password" />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+        
+<div className="input password-container">
+  <img src={passwordIcon} alt="password" />
+  <input
+    type={showPassword ? 'text' : 'password'}
+    placeholder="Password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+  />
+  <button
+  type="button"
+  className="toggle-password"
+  onClick={() => setShowPassword(prev => !prev)}
+>
+  {showPassword ? '🙈' : '👁️'}
+</button>
+
+</div>
 
         {/* Password reset only shown in Login mode */}
         {action === 'Login' && (
