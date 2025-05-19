@@ -409,10 +409,3 @@ button {
 
 
 
-#root {
-  min-height: 120vh;
-  background-color: #42049e !important; 
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
