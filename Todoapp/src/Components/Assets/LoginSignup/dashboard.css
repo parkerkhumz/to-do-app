@@ -6,6 +6,7 @@
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     font-family: 'Segoe UI', sans-serif;
+
   }
   
   .dashboard-container h1 {
@@ -390,4 +391,28 @@ button {
   width: 200px; 
   padding: 8px;
   box-sizing: border-box;
+}
+
+
+.reminder-box {
+  background-color: #ffa96f;
+  border-left: 6px solid #34c92e;
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 8px;
+}
+.dark .reminder-box {
+  background-color: #665c00;
+  color: #fff;
+  border-color: #ffdd57;
+}
+
+
+
+#root {
+  min-height: 120vh;
+  background-color: #42049e !important; 
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
