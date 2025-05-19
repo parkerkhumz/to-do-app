@@ -65,8 +65,9 @@ export const LoginSignup = () => {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'http://localhost:3000/update-password',
-    });
+  redirectTo: 'https://to-do-app-tv3c.vercel.app/update-password',
+});
+
 
     if (error) {
       alert(error.message);
