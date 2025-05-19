@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginSignup.css';
 
@@ -19,18 +19,7 @@ export const LoginSignup = () => {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Inject Tidio chat script on mount
-    const script = document.createElement('script');
-    script.src = '//code.tidio.co/htst4pijfyszlp5hndcmjtruii1fqhme.js';
-    script.async = true;
-    document.body.appendChild(script);
-
-    // Cleanup script when component unmounts
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+ 
 
   // Handles both login and signup logic
   const handleSubmit = async () => {
